@@ -1,0 +1,67 @@
+using Microsoft.Extensions.DependencyInjection;
+using OpenUSSD.Actions;
+using OpenUSSD.Core;
+using OpenUSSD.models;
+
+namespace OpenUSSD.Core;
+
+/// <summary>
+/// Extension methods for configuring USSD SDK services
+/// </summary>
+public static class UssdSdkExtensions
+{
+    /// <summary>
+    /// Adds USSD SDK services to the service collection
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="menu">The menu structure for the USSD application</param>
+    /// <param name="options">Optional configuration options</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddUssdSdk(
+        this IServiceCollection services,
+        Menu menu,
+        UssdOptions? options = null)
+    {
+        services.AddSingleton(menu);
+        services.AddSingleton(options ?? new UssdOptions());
+        services.AddSingleton<IUssdSessionStore, MemorySessionStore>();
+        services.AddScoped<UssdApp>();
+        services.AddMemoryCache();
+        return services;
+    }
+
+    /// <summary>
+    /// Adds USSD SDK services with a custom session store
+    /// </summary>
+    /// <typeparam name="TSessionStore">The session store implementation type</typeparam>
+    /// <param name="services">The service collection</param>
+    /// <param name="menu">The menu structure for the USSD application</param>
+    /// <param name="options">Optional configuration options</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddUssdSdk<TSessionStore>(
+        this IServiceCollection services,
+        Menu menu,
+        UssdOptions? options = null)
+        where TSessionStore : class, IUssdSessionStore
+    {
+        services.AddSingleton(menu);
+        services.AddSingleton(options ?? new UssdOptions());
+        services.AddSingleton<IUssdSessionStore, TSessionStore>();
+        services.AddScoped<UssdApp>();
+        services.AddMemoryCache();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers an action handler
+    /// </summary>
+    /// <typeparam name="THandler">The action handler type</typeparam>
+    /// <param name="services">The service collection</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddActionHandler<THandler>(this IServiceCollection services)
+        where THandler : class, IActionHandler
+    {
+        services.AddSingleton<IActionHandler, THandler>();
+        return services;
+    }
+}

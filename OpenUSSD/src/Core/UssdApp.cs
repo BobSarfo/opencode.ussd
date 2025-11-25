@@ -1,0 +1,222 @@
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OpenUSSD.Actions;
+using OpenUSSD.models;
+
+namespace OpenUSSD.Core
+{
+    /// <summary>
+    /// Main USSD application handler that processes incoming USSD requests
+    /// </summary>
+    public class UssdApp
+    {
+        private readonly IUssdSessionStore _sessionStore;
+        private readonly ILogger<UssdApp> _logger;
+        private readonly Menu _menu;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly UssdOptions _options;
+
+        public UssdApp(
+            IUssdSessionStore sessionStore,
+            ILogger<UssdApp> logger,
+            Menu menu,
+            IServiceProvider serviceProvider,
+            UssdOptions? options = null)
+        {
+            _sessionStore = sessionStore;
+            _logger = logger;
+            _menu = menu;
+            _serviceProvider = serviceProvider;
+            _options = options ?? new UssdOptions();
+        }
+
+        /// <summary>
+        /// Handles an incoming USSD request and returns the appropriate response
+        /// </summary>
+        public async Task<UssdResponseDto> HandleRequestAsync(UssdRequestDto request)
+        {
+            var session = await _sessionStore.GetAsync(request.SessionID) ?? new UssdSession(
+                request.SessionID,
+                request.Msisdn,
+                request.UserID,
+                request.Network
+            );
+
+            UssdStepResult response;
+            if (request.NewSession)
+            {
+                session.CurrentStep = _menu.RootId;
+                response = RenderMenu(session);
+            }
+            else
+            {
+                response = await ProcessRequest(session, request.UserData ?? "");
+            }
+
+            // Handle GoHome navigation
+            if (response.GoHome)
+            {
+                session.CurrentStep = _menu.RootId;
+                session.Level = 1;
+                response = RenderMenu(session);
+            }
+
+            // Handle NextStep navigation
+            if (!string.IsNullOrEmpty(response.NextStep))
+            {
+                session.CurrentStep = response.NextStep;
+                response = RenderMenu(session);
+            }
+
+            await _sessionStore.SetAsync(session, _options.SessionTimeout);
+
+            return new UssdResponseDto
+            {
+                SessionID = request.SessionID,
+                UserID = request.UserID,
+                ContinueSession = response.ContinueSession,
+                Msisdn = request.Msisdn,
+                Message = response.Message
+            };
+        }
+
+        private async Task<UssdStepResult> ProcessRequest(UssdSession session, string input)
+        {
+            var currentNode = _menu.GetNode(session.CurrentStep);
+
+            // Handle back navigation
+            if (input == _options.BackCommand && session.Level > 1)
+            {
+                return GoBack(session);
+            }
+
+            // Handle home navigation
+            if (input == _options.HomeCommand)
+            {
+                return UssdStepResult.Home();
+            }
+
+            var option = currentNode.Options.FirstOrDefault(o => o.Input == input);
+
+            if (option == null)
+            {
+                return RenderMenu(session, _options.InvalidInputMessage);
+            }
+
+            // Execute action handler if specified
+            if (!string.IsNullOrEmpty(option.ActionKey))
+            {
+                var handler = _serviceProvider.GetServices<IActionHandler>()
+                    .FirstOrDefault(h => h.Key == option.ActionKey);
+
+                if (handler != null)
+                {
+                    var context = new UssdContext(
+                        new UssdRequestDto
+                        {
+                            SessionID = session.SessionId,
+                            UserID = session.UserId,
+                            NewSession = false,
+                            Msisdn = session.Msisdn,
+                            UserData = input,
+                            Network = session.Network
+                        },
+                        session
+                    )
+                    {
+                        ContextActionKey = option.ActionKey
+                    };
+
+                    var result = await handler.HandleAsync(context);
+                    return result;
+                }
+
+                _logger.LogWarning("No action handler found for key {ActionKey}", option.ActionKey);
+            }
+
+            // Navigate to target step if specified
+            if (!string.IsNullOrEmpty(option.TargetStep))
+            {
+                session.CurrentStep = option.TargetStep;
+                return RenderMenu(session);
+            }
+
+            // Terminal option with no action or target
+            return new UssdStepResult
+            {
+                Message = _options.DefaultEndMessage,
+                ContinueSession = false
+            };
+        }
+
+        private UssdStepResult GoBack(UssdSession session)
+        {
+            // Simple back navigation - in a real implementation, you'd maintain a navigation stack
+            session.Level--;
+            if (session.Level <= 1)
+            {
+                session.CurrentStep = _menu.RootId;
+                session.Level = 1;
+            }
+            return RenderMenu(session, "Going back...");
+        }
+
+        private UssdStepResult RenderMenu(UssdSession session, string? prefix = null)
+        {
+            var node = _menu.GetNode(session.CurrentStep);
+            var sb = new StringBuilder();
+
+            if (prefix != null)
+            {
+                sb.AppendLine(prefix);
+            }
+
+            sb.AppendLine(node.Title);
+
+            // Check if pagination is needed
+            var options = node.Options.ToList();
+            if (_options.EnablePagination && options.Count > _options.ItemsPerPage)
+            {
+                var currentPage = session.Part;
+                var paginatedOptions = PaginateOptions(options, currentPage, _options.ItemsPerPage);
+
+                foreach (var opt in paginatedOptions)
+                {
+                    sb.AppendLine($"{opt.Input}. {opt.Label}");
+                }
+
+                // Add pagination controls
+                var totalPages = (int)Math.Ceiling((double)options.Count / _options.ItemsPerPage);
+                if (currentPage < totalPages)
+                {
+                    sb.AppendLine($"{_options.NextPageCommand}. Next");
+                }
+                if (currentPage > 1)
+                {
+                    sb.AppendLine($"{_options.PreviousPageCommand}. Previous");
+                }
+            }
+            else
+            {
+                foreach (var opt in options)
+                {
+                    sb.AppendLine($"{opt.Input}. {opt.Label}");
+                }
+            }
+
+            session.Level++;
+            return new UssdStepResult
+            {
+                Message = sb.ToString().TrimEnd(),
+                ContinueSession = !node.IsTerminal
+            };
+        }
+
+        private IEnumerable<MenuOption> PaginateOptions(List<MenuOption> options, int page, int pageSize)
+        {
+            var skip = (page - 1) * pageSize;
+            return options.Skip(skip).Take(pageSize);
+        }
+    }
+}
