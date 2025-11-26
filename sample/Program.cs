@@ -1,6 +1,6 @@
-using OpenUSSD.Core;
-using OpenUSSD.Builders;
-using OpenUSSD.models;
+using bobcode.ussd.arkesel.Core;
+using bobcode.ussd.arkesel.Builders;
+using bobcode.ussd.arkesel.models;
 using Sample;
 using Sample.Handlers;
 

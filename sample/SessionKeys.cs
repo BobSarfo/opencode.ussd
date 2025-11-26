@@ -1,4 +1,4 @@
-using OpenUSSD.models;
+using bobcode.ussd.arkesel.models;
 
 namespace Sample;
 

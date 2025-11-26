@@ -1,6 +1,6 @@
-using OpenUSSD.Actions;
-using OpenUSSD.Attributes;
-using OpenUSSD.models;
+using bobcode.ussd.arkesel.Actions;
+using bobcode.ussd.arkesel.Attributes;
+using bobcode.ussd.arkesel.models;
 
 namespace Sample.Handlers;
 

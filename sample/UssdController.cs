@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using OpenUSSD.Core;
-using OpenUSSD.models;
+using bobcode.ussd.arkesel.Core;
+using bobcode.ussd.arkesel.models;
 
 namespace Sample;
 
 /// <summary>
-/// USSD Controller demonstrating the OpenUSSD SDK
+/// USSD Controller demonstrating the bobcode.ussd.arkesel SDK
 /// </summary>
 [ApiController]
 [Route("[controller]")]
