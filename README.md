@@ -48,16 +48,16 @@ public enum BankMenuNode
 
 ```csharp
 var menu = new UssdMenuBuilder<BankMenuNode>("bank")
-    .Root(BankMenuNode.Main)
+    .Root(BankMenuPage.Main)
 
-    .Node(BankMenuNode.Main, n => n
-        .Message("Welcome to Demo Bank")
+    .Page(BankMenuPage.Main, n => n
+        .Title("Welcome to Demo Bank")
         .Option("1", "Check Balance").Action<BalanceCheckHandler>()
         .Option("2", "Transfer Money").GoTo(BankMenuNode.TransferRecipient)
     )
 
-    .Node(BankMenuNode.TransferRecipient, n => n
-        .Message("Enter recipient phone number:")
+    .Page(BankMenuPage.TransferRecipient, n => n
+        .Title("Enter recipient phone number:")
         .Input().Action<TransferRecipientHandler>()
     )
 
