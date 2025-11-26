@@ -1,4 +1,5 @@
 # Bobcode.Ussd.Arkesel
+[![Build, Test, and Release Bobcode.Ussd.Arkesel SDK](https://github.com/BobSarfo/Bobcode.Ussd.Arkesel/actions/workflows/build.yml/badge.svg)](https://github.com/BobSarfo/Bobcode.Ussd.Arkesel/actions/workflows/build.yml)
 
 ### Nugget Package : [Arkesel Package](https://www.nuget.org/packages/Bobcode.Ussd.Arkesel)
 
