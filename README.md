@@ -1,6 +1,6 @@
-# OpenUSSD
+# Bobcode.Ussd.Arkesel
 
-### Nugget Package : https://www.nuget.org/packages/OpenUSSD/](https://www.nuget.org/packages/Bobcode.Ussd.Arkesel
+### Nugget Package : [Arkesel Package](https://www.nuget.org/packages/Bobcode.Ussd.Arkesel)
 
 A modern, strongly-typed .NET SDK for building USSD (Unstructured Supplementary Service Data) applications with ASP.NET Core.
 
@@ -26,7 +26,7 @@ OpenUSSD simplifies USSD application development by providing a clean, type-safe
 ### Installation
 
 ```bash
-dotnet add package OpenUSSD
+dotnet add package Bobcode.Ussd.Arkesel
 ```
 
 ### Basic Usage
