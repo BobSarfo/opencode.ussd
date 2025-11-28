@@ -56,7 +56,7 @@ var menu = new UssdMenuBuilder<BankMenuNode>("bank")
     )
 
     .Title(BankMenuNode.TransferRecipient, n => n
-        .Message("Enter recipient phone number:")
+        .Title("Enter recipient phone number:")
         .Input().Action<TransferRecipientHandler>()
     )
 
